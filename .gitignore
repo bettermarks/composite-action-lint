@@ -1,0 +1,5 @@
+# Tends to be personal
+go.work
+
+# The build artifact
+/composite-action-lint

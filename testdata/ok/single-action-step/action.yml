@@ -1,0 +1,7 @@
+name: Single Action Step
+description: Action with single action step
+runs:
+  using: "composite"
+  steps:
+    - name: Setup yq
+      uses: mikefarah/yq@master

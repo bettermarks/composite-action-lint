@@ -1,0 +1,8 @@
+name: uses-and-run-step
+description: Action with both 'uses' and 'run' in step
+runs:
+  using: "composite"
+  steps:
+    - run: echo hi
+      shell: bash
+      uses: checkout@v4

@@ -1,0 +1,7 @@
+name: Single Shell Step
+description: Action with single shell step
+runs:
+  using: "composite"
+  steps:
+    - run: echo hi
+      shell: bash
