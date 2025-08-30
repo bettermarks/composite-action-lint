@@ -17,6 +17,13 @@ func MetadataKeyAvailability(key string) ([]string, []string) {
 	sfInSteps := []string{"hashfiles"} // careful, we've lowercased it
 	sfInIfs := []string{"success", "always", "cancelled", "failure"}
 
+	contextsInSteps := []string{
+		"env", "github", "inputs", "steps",
+		// it's a bit weird to access the job or matrix to me, but
+		// seems they are there.
+		"runner", "strategy", "job", "matrix",
+	}
+
 	switch key {
 	case "runs.steps.continue-on-error":
 		fallthrough
@@ -29,11 +36,13 @@ func MetadataKeyAvailability(key string) ([]string, []string) {
 	case "runs.steps.with":
 		fallthrough
 	case "runs.steps.working-directory":
-		return []string{"env", "github", "inputs", "steps"}, sfInSteps
+		return contextsInSteps, sfInSteps
 	case "runs.steps.if":
-		return []string{"env", "github", "inputs", "steps"}, slices.Concat(sfInSteps, sfInIfs)
+		return contextsInSteps, slices.Concat(sfInSteps, sfInIfs)
 	case "outputs.<output_id>":
-		return []string{"env", "github", "inputs", "steps"}, []string{}
+		// Not double checked, but if it's like job outputs, then it's
+		// the same as within the steps
+		return contextsInSteps, []string{}
 	default:
 		return nil, nil
 	}
