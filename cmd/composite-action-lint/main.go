@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
-	cmd := compositeactionlint.Command{}
+	cmd := compositeactionlint.Command{
+		Stdout: os.Stdout, Stderr: os.Stderr, Stdin: os.Stdin,
+	}
 	os.Exit(cmd.Main(os.Args))
 }

@@ -8,7 +8,7 @@ import (
 
 const argv0 = "./composite-action-lint"
 
-func TestCommandMain(t *testing.T) {
+func TestCommandMain_Ok(t *testing.T) {
 
 	files := []string{
 		"./testdata/ok/single-action-step/action.yml",
@@ -29,6 +29,7 @@ func TestCommandMain_BadActions(t *testing.T) {
 
 	files := []string{
 		"./testdata/examples/uses-and-run-step/action.yml",
+		"./testdata/examples/steps-in-js-action/action.yml",
 	}
 
 	for _, filepath := range files {

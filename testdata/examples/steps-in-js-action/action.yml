@@ -1,0 +1,7 @@
+name: Steps in JS Action
+description: Steps in JS Action
+runs:
+  using: "node20"
+  steps:
+    - run: echo hi
+      shell: bash

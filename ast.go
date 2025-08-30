@@ -5,8 +5,6 @@ import "github.com/rhysd/actionlint"
 type Pos = actionlint.Pos
 type String = actionlint.String
 type Bool = actionlint.Bool
-type Float = actionlint.Float
-type Int = actionlint.Int
 
 // TODO: not sure if defining our own or reusing the actionlint job steps is
 // best...

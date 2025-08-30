@@ -13,14 +13,11 @@ type Linter struct {
 func (l *Linter) LintFiles(paths []string) ([]*Error, error) {
 	all := []*Error{}
 	for _, path := range paths {
-		// TODO:
 		errs, err := l.LintFile(path)
 		if err != nil {
 			return nil, err
 		}
-		for _, e := range errs {
-			all = append(all, e)
-		}
+		all = append(all, errs...)
 	}
 	return all, nil
 }

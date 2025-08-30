@@ -14,7 +14,6 @@ const (
 )
 
 type Command struct {
-	// May put stdin,-err and -out in here for testing purposes in future
 	Stdout io.Writer
 	Stderr io.Writer
 	Stdin  io.Reader
@@ -30,7 +29,7 @@ func (cmd *Command) Main(args []string) int {
 	l := &Linter{out: cmd.Stdout}
 	errs, err := l.LintFiles(flags.Args())
 	if err != nil {
-		fmt.Fprintln(cmd.Stderr, err.Error())
+		_, _ = fmt.Fprintln(cmd.Stderr, err.Error())
 		return ExitStatusFailure
 	}
 

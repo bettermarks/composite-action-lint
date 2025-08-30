@@ -2,7 +2,6 @@ package compositeactionlint
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,10 +50,10 @@ type parser struct {
 }
 
 func (p *parser) error(n *yaml.Node, m string) {
-	p.errors = append(p.errors, &Error{m, "", n.Line, n.Column, "syntax-check"})
+	p.errors = append(p.errors, newError(m, "", n.Line, n.Column, "syntax-check"))
 }
 func (p *parser) errorAt(pos *Pos, m string) {
-	p.errors = append(p.errors, &Error{m, "", pos.Line, pos.Col, "syntax-check"})
+	p.errors = append(p.errors, newError(m, "", pos.Line, pos.Col, "syntax-check"))
 }
 func (p *parser) errorf(n *yaml.Node, format string, args ...any) {
 	p.error(n, fmt.Sprintf(format, args...))
@@ -144,64 +143,6 @@ func (p *parser) parseBool(n *yaml.Node) *Bool {
 	}
 }
 
-func (p *parser) parseInt(n *yaml.Node) *Int {
-	if n.Kind != yaml.ScalarNode || (n.Tag != "!!int" && n.Tag != "!!str") {
-		p.errorf(n, "expected scalar node for integer value but found %s node with %q tag", nodeKindName(n.Kind), n.Tag)
-		return nil
-	}
-
-	if n.Tag == "!!str" {
-		e := p.parseExpression(n, "integer literal")
-		if e == nil {
-			return nil
-		}
-		return &Int{
-			Expression: e,
-			Pos:        posAt(n),
-		}
-	}
-
-	i, err := strconv.Atoi(n.Value)
-	if err != nil {
-		p.errorf(n, "invalid integer value: %q: %s", n.Value, err.Error())
-		return nil
-	}
-
-	return &Int{
-		Value: i,
-		Pos:   posAt(n),
-	}
-}
-
-func (p *parser) parseFloat(n *yaml.Node) *Float {
-	if n.Kind != yaml.ScalarNode || (n.Tag != "!!float" && n.Tag != "!!int" && n.Tag != "!!str") {
-		p.errorf(n, "expected scalar node for float value but found %s node with %q tag", nodeKindName(n.Kind), n.Tag)
-		return nil
-	}
-
-	if n.Tag == "!!str" {
-		e := p.parseExpression(n, "float number literal")
-		if e == nil {
-			return nil
-		}
-		return &Float{
-			Expression: e,
-			Pos:        posAt(n),
-		}
-	}
-
-	f, err := strconv.ParseFloat(n.Value, 64)
-	if err != nil || math.IsNaN(f) {
-		p.errorf(n, "invalid float value: %q: %s", n.Value, err.Error())
-		return nil
-	}
-
-	return &Float{
-		Value: f,
-		Pos:   posAt(n),
-	}
-}
-
 func (p *parser) parseMapping(what string, n *yaml.Node, allowEmpty bool) []workflowKeyVal {
 	isNull := isNull(n)
 
@@ -262,30 +203,70 @@ func (p *parser) parseStep(n *yaml.Node) *Step {
 			ret.Name = p.parseString(v, false)
 		case "continue-on-error":
 			ret.ContinueOnError = p.parseBool(v)
+		case "env":
+			env := p.parseMapping("env", v, false)
+			ret.Env = make(map[string]*actionlint.EnvVar, len(env))
+			for _, envvar := range env {
+				ret.Env[envvar.id] = &actionlint.EnvVar{
+					Name: envvar.key, Value: p.parseString(envvar.val, true),
+				}
+			}
 		case "uses":
 			action.Uses = p.parseString(v, false)
 			actionOnlyKey = k
 		case "with":
 			actionOnlyKey = k
-			panic("TODO: uses+with")
+			with := p.parseMapping("with", v, false)
+			action.Inputs = make(map[string]*actionlint.Input, len(with))
+			for _, input := range with {
+				// In the actions metadata docs, entrypoint and args are not
+				// mentioned. So, skipped here as yet.
+				action.Inputs[input.id] = &actionlint.Input{
+					Name: input.key, Value: p.parseString(input.val, true),
+				}
+			}
 		case "run":
 			run.RunPos = k.Pos
+			run.Run = p.parseString(v, false)
 			runOnlyKey = k
 		case "shell":
+			run.Shell = p.parseString(v, false)
 			runOnlyKey = k
 		case "working-directory":
 			run.WorkingDirectory = p.parseString(v, false)
+		default:
+			p.unexpectedKey(k, "step", []string{
+				"if",
+				"id",
+				"name",
+				"continue-on-error",
+				"env",
+				"uses",
+				"with",
+				"run",
+				"shell",
+				"working-directory",
+			})
 		}
 	}
 
 	if actionOnlyKey != nil {
 		ret.Exec = action
+		if action.Uses == nil {
+			p.error(n, "\"with\" without \"uses\"")
+		}
 		if runOnlyKey != nil {
 			p.errorf(n, "step has both run and action keys, %q and %q",
 				runOnlyKey.Value, actionOnlyKey.Value)
 		}
 	} else if runOnlyKey != nil {
 		ret.Exec = run
+		if run.Run == nil {
+			p.error(n, "run step missing \"run\"")
+		}
+		if run.Shell == nil {
+			p.error(n, "run step missing \"shell\"")
+		}
 	} else {
 		p.error(n, "step missing both \"run\" and \"uses\"")
 	}
@@ -308,6 +289,44 @@ func (p *parser) parseSteps(n *yaml.Node) []*Step {
 	return ret
 }
 
+func (p *parser) parseOutput(id *String, n *yaml.Node) *Output {
+	ret := &Output{ID: id}
+	for _, kv := range p.parseMapping("output", n, false) {
+		k, v := kv.key, kv.val
+		switch kv.id {
+		case "description":
+			ret.Description = p.parseString(v, false)
+		case "value":
+			ret.Value = p.parseString(v, true)
+		default:
+			p.unexpectedKey(k, "output", []string{
+				"description",
+				"value",
+			})
+		}
+	}
+	if ret.Description == nil {
+		p.errorfAt(id.Pos, "\"description\" is missing for output %q", id.Value)
+	}
+	return ret
+}
+
+// Only applies if action is composite
+func (p *parser) postCheckOutput(o *Output) {
+	if o.Value == nil {
+		p.errorfAt(o.ID.Pos, "\"value\" is missing for output %q", o.ID.Value)
+	}
+}
+
+func (p *parser) parseOutputs(n *yaml.Node) map[string]*Output {
+	outputs := p.parseMapping("outputs section", n, false)
+	ret := make(map[string]*Output, len(outputs))
+	for _, kv := range outputs {
+		ret[kv.id] = p.parseOutput(kv.key, kv.val)
+	}
+	return ret
+}
+
 func (p *parser) parseInput(id *String, n *yaml.Node) *Input {
 	i := &Input{ID: id, Pos: id.Pos}
 	for _, kv := range p.parseMapping("input", n, false) {
@@ -326,6 +345,8 @@ func (p *parser) parseInput(id *String, n *yaml.Node) *Input {
 	if i.Description == nil {
 		p.errorfAt(i.Pos, "\"description\" is from input %q", id.Value)
 	}
+	// TODO: Not sure it's allowable to use expessions in the input spec
+	// So maybe we should check for that.
 	return i
 }
 
@@ -340,6 +361,7 @@ func (p *parser) parseInputs(n *yaml.Node) map[string]*Input {
 
 func (p *parser) parseRuns(pos *Pos, n *yaml.Node) *Runs {
 	ret := &Runs{}
+	var stepsPos *Pos
 	for _, kv := range p.parseMapping("runs section", n, false) {
 		_, v := kv.key, kv.val
 		switch kv.id {
@@ -347,11 +369,23 @@ func (p *parser) parseRuns(pos *Pos, n *yaml.Node) *Runs {
 			ret.Using = p.parseString(v, false)
 		case "steps":
 			ret.Steps = p.parseSteps(v)
+			stepsPos = kv.key.Pos
 		}
 	}
 
 	if ret.Using == nil {
 		p.errorAt(pos, "\"using\" is missing from runs section")
+	} else {
+		// We don't check the using value exhaustively because new values like
+		// 'node24' may appear.
+		if ret.Using.Value == "composite" && ret.Steps == nil {
+			p.errorAt(pos, "\"steps\" missing from composite action \"runs\" section")
+		}
+		if ret.Steps != nil && ret.Using.Value != "composite" {
+			p.errorfAt(stepsPos,
+				"unexpected \"steps\" section for non-composite %q action ",
+				ret.Using.Value)
+		}
 	}
 	return ret
 }
@@ -383,8 +417,7 @@ func (p *parser) parse(n *yaml.Node) *ActionMetadata {
 		case "inputs":
 			a.Inputs = p.parseInputs(v)
 		case "outputs":
-			// a.Outputs = p.parseOutputs(v)
-			panic("TODO")
+			a.Outputs = p.parseOutputs(v)
 		case "runs":
 			a.Runs = p.parseRuns(k.Pos, v)
 		default:
@@ -395,6 +428,7 @@ func (p *parser) parse(n *yaml.Node) *ActionMetadata {
 				"inputs",
 				"outputs",
 				"runs",
+				"branding", // Not parsed
 			})
 		}
 	}
@@ -407,6 +441,10 @@ func (p *parser) parse(n *yaml.Node) *ActionMetadata {
 	}
 	if a.Runs == nil {
 		p.error(n, "\"runs\" section is missing in action metadata")
+	} else if a.Runs.Steps != nil {
+		for _, o := range a.Outputs {
+			p.postCheckOutput(o)
+		}
 	}
 	return a
 }
@@ -420,7 +458,7 @@ func handleYAMLError(err error) []*Error {
 			l, _ = strconv.Atoi(ss[1])
 		}
 		msg = fmt.Sprintf("could not parse as YAML: %s", msg)
-		return &Error{msg, "", l, 0, "syntax-check"}
+		return newError(msg, "", l, 0, "syntax-check")
 	}
 
 	if te, ok := err.(*yaml.TypeError); ok {
