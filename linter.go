@@ -38,8 +38,27 @@ func (l *Linter) check(path string, content []byte) ([]*Error, error) {
 	a, all := Parse(content)
 
 	if a != nil {
-		// TODO: run some check rules
+		rules := []Rule{
+			NewRuleExpression(),
+		}
+
+		v := Visitor{}
+		for _, rule := range rules {
+			v.AddPass(rule)
+		}
+		if err := v.Visit(a); err != nil {
+			return nil, err
+		}
+		for _, rule := range rules {
+			errs := rule.Errs()
+			all = append(all, errs...)
+		}
 	}
+
+	for _, err := range all {
+		err.Filepath = path
+	}
+
 	return all, nil
 }
 

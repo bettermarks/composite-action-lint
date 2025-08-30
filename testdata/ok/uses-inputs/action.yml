@@ -1,0 +1,12 @@
+name: Action that uses inputs
+description: Action that uses inputs
+
+inputs:
+  a:
+    description: a
+
+runs:
+  using: composite
+  steps:
+    - run: echo ${{ inputs.a }}
+      shell: sh

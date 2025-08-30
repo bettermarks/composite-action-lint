@@ -143,7 +143,7 @@ func (p *parser) parseBool(n *yaml.Node) *Bool {
 	}
 }
 
-func (p *parser) parseMapping(what string, n *yaml.Node, allowEmpty bool) []workflowKeyVal {
+func (p *parser) parseMapping(what string, n *yaml.Node, allowEmpty bool, caseSensitive bool) []workflowKeyVal {
 	isNull := isNull(n)
 
 	if !isNull && n.Kind != yaml.MappingNode {
@@ -166,9 +166,17 @@ func (p *parser) parseMapping(what string, n *yaml.Node, allowEmpty bool) []work
 		}
 
 		id := k.Value
+		if !caseSensitive {
+			// Keys of mappings are sometimes case insensitive.
+			// For example, inputs passed with actions under the "with" key.
+			id = strings.ToLower(id)
+		}
 
 		if pos, ok := keys[id]; ok {
 			var note string
+			if !caseSensitive {
+				note = ". note that this key is case insensitive"
+			}
 			p.errorfAt(k.Pos, "key %q is duplicated in %s. previously defined at %s%s", k.Value, what, pos.String(), note)
 			continue
 		}
@@ -192,7 +200,7 @@ func (p *parser) parseStep(n *yaml.Node) *Step {
 	var actionOnlyKey *String
 	var runOnlyKey *String
 
-	for _, kv := range p.parseMapping("input", n, false) {
+	for _, kv := range p.parseMapping("input", n, false, true) {
 		k, v := kv.key, kv.val
 		switch kv.id {
 		case "if":
@@ -204,7 +212,7 @@ func (p *parser) parseStep(n *yaml.Node) *Step {
 		case "continue-on-error":
 			ret.ContinueOnError = p.parseBool(v)
 		case "env":
-			env := p.parseMapping("env", v, false)
+			env := p.parseMapping("env", v, false, true)
 			ret.Env = make(map[string]*actionlint.EnvVar, len(env))
 			for _, envvar := range env {
 				ret.Env[envvar.id] = &actionlint.EnvVar{
@@ -216,7 +224,7 @@ func (p *parser) parseStep(n *yaml.Node) *Step {
 			actionOnlyKey = k
 		case "with":
 			actionOnlyKey = k
-			with := p.parseMapping("with", v, false)
+			with := p.parseMapping("with", v, false, false)
 			action.Inputs = make(map[string]*actionlint.Input, len(with))
 			for _, input := range with {
 				// In the actions metadata docs, entrypoint and args are not
@@ -291,7 +299,7 @@ func (p *parser) parseSteps(n *yaml.Node) []*Step {
 
 func (p *parser) parseOutput(id *String, n *yaml.Node) *Output {
 	ret := &Output{ID: id}
-	for _, kv := range p.parseMapping("output", n, false) {
+	for _, kv := range p.parseMapping("output", n, false, true) {
 		k, v := kv.key, kv.val
 		switch kv.id {
 		case "description":
@@ -319,7 +327,7 @@ func (p *parser) postCheckOutput(o *Output) {
 }
 
 func (p *parser) parseOutputs(n *yaml.Node) map[string]*Output {
-	outputs := p.parseMapping("outputs section", n, false)
+	outputs := p.parseMapping("outputs section", n, false, false)
 	ret := make(map[string]*Output, len(outputs))
 	for _, kv := range outputs {
 		ret[kv.id] = p.parseOutput(kv.key, kv.val)
@@ -329,7 +337,7 @@ func (p *parser) parseOutputs(n *yaml.Node) map[string]*Output {
 
 func (p *parser) parseInput(id *String, n *yaml.Node) *Input {
 	i := &Input{ID: id, Pos: id.Pos}
-	for _, kv := range p.parseMapping("input", n, false) {
+	for _, kv := range p.parseMapping("input", n, false, true) {
 		_, v := kv.key, kv.val
 		switch kv.id {
 		case "description":
@@ -351,7 +359,7 @@ func (p *parser) parseInput(id *String, n *yaml.Node) *Input {
 }
 
 func (p *parser) parseInputs(n *yaml.Node) map[string]*Input {
-	inputs := p.parseMapping("inputs section", n, false)
+	inputs := p.parseMapping("inputs section", n, false, false)
 	ret := make(map[string]*Input, len(inputs))
 	for _, kv := range inputs {
 		ret[kv.id] = p.parseInput(kv.key, kv.val)
@@ -362,7 +370,7 @@ func (p *parser) parseInputs(n *yaml.Node) map[string]*Input {
 func (p *parser) parseRuns(pos *Pos, n *yaml.Node) *Runs {
 	ret := &Runs{}
 	var stepsPos *Pos
-	for _, kv := range p.parseMapping("runs section", n, false) {
+	for _, kv := range p.parseMapping("runs section", n, false, true) {
 		_, v := kv.key, kv.val
 		switch kv.id {
 		case "using":
@@ -405,7 +413,7 @@ func (p *parser) parse(n *yaml.Node) *ActionMetadata {
 		return a
 	}
 
-	for _, kv := range p.parseMapping("action metadata", n.Content[0], false) {
+	for _, kv := range p.parseMapping("action metadata", n.Content[0], false, true) {
 		k, v := kv.key, kv.val
 		switch kv.id {
 		case "name":

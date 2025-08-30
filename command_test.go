@@ -13,6 +13,7 @@ func TestCommandMain_Ok(t *testing.T) {
 	files := []string{
 		"./testdata/ok/single-action-step/action.yml",
 		"./testdata/ok/single-shell-step/action.yml",
+		"./testdata/ok/uses-inputs/action.yml",
 	}
 
 	for _, filepath := range files {
