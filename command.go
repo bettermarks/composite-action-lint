@@ -14,7 +14,7 @@ const (
 )
 
 func printUsageHeader(out io.Writer) {
-	fmt.Fprintf(out, `usage: composite-action-lint FILES...
+	_, _ = fmt.Fprintf(out, `usage: composite-action-lint FILES...
 
 composite-action-lint is a linter for composite Github Actions.
 
