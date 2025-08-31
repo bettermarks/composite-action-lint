@@ -1,0 +1,12 @@
+name: Typo in Input Usage
+description: Demonstrates composite-action-lint finding use of a non existant input
+
+inputs:
+  description:
+    description: The description to be used
+
+runs:
+  using: composite
+  steps:
+    - run: echo ${{ inputs.desrciption }}
+      shell: bash
