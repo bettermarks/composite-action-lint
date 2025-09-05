@@ -20,6 +20,8 @@ Installation requires a working [go][go] toolchain.
 go install github.com/bettermarks/composite-action-lint/cmd/composite-action-lint@latest
 ```
 
+Then ensure you have `$(go env GOPATH)/bin` on your `PATH`.
+
 ## Usage
 
 Unlike actionlint, composite-action-lint does not search for actions to lint.
