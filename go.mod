@@ -1,6 +1,6 @@
 module github.com/bettermarks/composite-action-lint
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/rhysd/actionlint v1.7.7
