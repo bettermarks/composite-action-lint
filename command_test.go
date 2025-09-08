@@ -1,6 +1,7 @@
 package compositeactionlint
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,9 +19,12 @@ func TestCommandMain_Ok(t *testing.T) {
 
 	for _, filepath := range files {
 		t.Run(filepath, func(t *testing.T) {
-			c := Command{Stdout: t.Output(), Stderr: t.Output()}
+			// Replace with t.Output() from go 1.25
+			var testOut bytes.Buffer
+			c := Command{Stdout: &testOut, Stderr: &testOut}
 			exitCode := c.Main([]string{argv0, filepath})
 
+			t.Log(testOut.String())
 			assert.Equal(t, 0, exitCode)
 		})
 	}
@@ -35,9 +39,12 @@ func TestCommandMain_BadActions(t *testing.T) {
 
 	for _, filepath := range files {
 		t.Run(filepath, func(t *testing.T) {
-			c := Command{Stdout: t.Output(), Stderr: t.Output()}
+			// Replace with t.Output() from go 1.25
+			var testOut bytes.Buffer
+			c := Command{Stdout: &testOut, Stderr: &testOut}
 			exitCode := c.Main([]string{argv0, filepath})
 
+			t.Log(testOut.String())
 			assert.Equal(t, 1, exitCode)
 		})
 	}
