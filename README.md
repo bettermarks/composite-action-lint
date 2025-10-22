@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: bettermarks/composite-action-lint@main
+      - uses: bettermarks/composite-action-lint@master
         with:
           actions: .github/actions/*/action.yml # this is the default value, so it can be omitted
 ```
