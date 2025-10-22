@@ -2,7 +2,7 @@ composite-action-lint
 =====================
 
 
-A shallow structural copy of [actionlint][actionlint-repo] but instead for
+A shallow structural copy of [actionlint][actionlint-repo] but for
 linting the steps of [composite github actions][composite-action-tutorial]
 instead of github workflow files.
 
