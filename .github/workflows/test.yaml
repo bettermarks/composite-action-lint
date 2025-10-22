@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - run: go vet ./...
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       # https://github.com/golangci/golangci-lint-action
@@ -37,3 +37,11 @@ jobs:
         with:
           version: "${{ env.GOLANGCI_LINT_VERSION }}"
           args: --timeout=5m --tests=false ./...
+
+  action:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./ # use the checked out version of this repo as an action
+        with: # to lint the composite action it provides
+          actions: 'action.yml'
