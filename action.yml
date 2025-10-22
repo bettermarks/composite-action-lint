@@ -1,0 +1,22 @@
+name: composite-action-lint
+
+description: actionlint for composite actions
+
+inputs:
+  actions:
+    description: paths to actions to lint, supports wildcards
+    default: .github/actions/*/action.yml
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 'stable'
+    - name: Install composite-action-lint
+      run: go install github.com/bettermarks/composite-action-lint/cmd/composite-action-lint@latest
+      shell: sh
+    - name: Check composite actions
+      run: composite-action-lint ${{ inputs.actions }}
+      shell: sh
