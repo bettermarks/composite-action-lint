@@ -4,7 +4,7 @@ description: actionlint for composite actions
 
 inputs:
   actions:
-    description: paths to actions to lint, supports wildcards
+    description: space separated list of paths to actions to lint, supports wildcards
     default: .github/actions/*/action.yml
     required: false
 
