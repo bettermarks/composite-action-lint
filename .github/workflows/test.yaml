@@ -42,6 +42,6 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
-      - uses: ./
-        with:
+      - uses: ./ # use the checked out version of this repo as an action
+        with: # to lint the composite action it provides
           actions: 'action.yml'
