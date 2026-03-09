@@ -22,7 +22,7 @@ To check any actions, pass the path to their metadata files as arguments.
 
   $ composite-action-lint path/to-action/action.yml another/action.yaml
 
-It takes no options or configuration at present.
+Flags:
 `)
 }
 
@@ -39,6 +39,9 @@ func (cmd *Command) Main(args []string) int {
 		printUsageHeader(cmd.Stderr)
 		flags.PrintDefaults()
 	}
+	var shellcheck string
+	flags.StringVar(&shellcheck, "shellcheck", "shellcheck", `Command name or file path of "shellcheck" external command. If empty, shellcheck integration will be disabled (default "shellcheck")`)
+
 	if err := flags.Parse(args[1:]); err != nil {
 		if err == flag.ErrHelp {
 			return ExitStatusSuccess
@@ -46,7 +49,7 @@ func (cmd *Command) Main(args []string) int {
 		return ExitStatusInvalidInvocation
 	}
 
-	l := &Linter{out: cmd.Stdout}
+	l := &Linter{out: cmd.Stdout, shellcheck: shellcheck}
 	errs, err := l.LintFiles(flags.Args())
 	if err != nil {
 		_, _ = fmt.Fprintln(cmd.Stderr, err.Error())

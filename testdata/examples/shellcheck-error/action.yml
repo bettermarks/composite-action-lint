@@ -1,0 +1,9 @@
+name: Shellcheck Error
+description: Demonstrates composite-action-lint finding a shellcheck error in a run step
+runs:
+  using: composite
+  steps:
+    - run: |
+        msg="hello world"
+        echo $msg
+      shell: bash

@@ -1,0 +1,10 @@
+name: Shell Step With Expressions
+description: Action with a shell step that uses GitHub expressions - these should be sanitized before shellcheck runs
+inputs:
+  name:
+    description: The name to greet
+runs:
+  using: composite
+  steps:
+    - run: echo ${{ inputs.name }}
+      shell: bash

@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 )
 
 type Linter struct {
-	out io.Writer
+	out        io.Writer
+	shellcheck string // empty = disabled; otherwise looked up via PATH or used as absolute path
 }
 
 func (l *Linter) LintFiles(paths []string) ([]*Error, error) {
@@ -40,6 +42,11 @@ func (l *Linter) check(path string, content []byte) ([]*Error, error) {
 	if a != nil {
 		rules := []Rule{
 			NewRuleExpression(),
+		}
+		if l.shellcheck != "" {
+			if scPath, err := exec.LookPath(l.shellcheck); err == nil {
+				rules = append(rules, NewRuleShellcheck(scPath))
+			}
 		}
 
 		v := Visitor{}
