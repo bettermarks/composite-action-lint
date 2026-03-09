@@ -57,7 +57,10 @@ composite-action-lint path/to-action/action.yml and/another/action.yaml
 
 ## Checks
 
-So far only expression checks have been ported across from actionlint.
+The following checks have been ported from actionlint:
+
+- **expression** — validates `${{ }}` expressions for syntax, type correctness, and context availability
+- **shellcheck** — checks shell scripts in `run:` steps using [shellcheck][shellcheck] (bash and sh only); requires shellcheck to be installed
 
 Example:
 
@@ -69,6 +72,7 @@ testdata/examples/typo-in-input-usage/action.yml:11:21: property "desrciption" i
    |                     ^~~~~~~~~~~~~~~~~~
 ```
 
+[shellcheck]: https://github.com/koalaman/shellcheck
 [actionlint-repo]: https://github.com/rhysd/actionlint
 [composite-action-tutorial]: https://docs.github.com/en/actions/tutorials/create-actions/create-a-composite-action
 [go]: https://go.dev/

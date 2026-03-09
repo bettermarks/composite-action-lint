@@ -2,6 +2,7 @@ package compositeactionlint
 
 import (
 	"bytes"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,7 @@ func TestCommandMain_Ok(t *testing.T) {
 		"./testdata/ok/single-action-step/action.yml",
 		"./testdata/ok/single-shell-step/action.yml",
 		"./testdata/ok/uses-inputs/action.yml",
+		"./testdata/ok/shellcheck-expression/action.yml",
 	}
 
 	for _, filepath := range files {
@@ -48,4 +50,17 @@ func TestCommandMain_BadActions(t *testing.T) {
 			assert.Equal(t, 1, exitCode)
 		})
 	}
+}
+
+func TestCommandMain_ShellcheckError(t *testing.T) {
+	if _, err := exec.LookPath("shellcheck"); err != nil {
+		t.Skip("shellcheck not found on PATH")
+	}
+
+	var testOut bytes.Buffer
+	c := Command{Stdout: &testOut, Stderr: &testOut}
+	exitCode := c.Main([]string{argv0, "./testdata/examples/shellcheck-error/action.yml"})
+
+	t.Log(testOut.String())
+	assert.Equal(t, 1, exitCode)
 }
